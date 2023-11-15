@@ -1,0 +1,17 @@
+
+$Project
+{
+	$Folder	"Source Files"
+	{
+		$Folder "Metaballs"
+		{
+			$File	"metaballs/c_point_blob_element.cpp"
+			$File	"metaballs/c_point_blob_element.h"
+			$File	"metaballs/c_point_blob_container.cpp"
+			$File	"metaballs/c_point_blob_container.h"
+			$File	"metaballs/CUBE_GRID.cpp"
+			$File	"metaballs/CUBE_GRID.h"
+			$File	"metaballs/METABALL.h"
+		}
+	}
+}
