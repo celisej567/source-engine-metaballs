@@ -40,7 +40,7 @@ public:
 class CUBE_GRID
 {
 public:
-	int numVertices;
+	size_t numVertices;
 	CUBE_GRID_VERTEX * vertices;
 
 	int numCubes;

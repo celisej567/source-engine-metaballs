@@ -19,13 +19,15 @@ public:
 	DECLARE_SERVERCLASS();
 	DECLARE_DATADESC();
 
-	CPointBlobElement(){}
+	CPointBlobElement(){
+
+		radius = 10;
+		radiusSquared = radius * radius;
+	}
 
     virtual void Spawn()
     {
-
 		SetTransmitState(FL_EDICT_ALWAYS);
-
 		m_nRenderMode = kRenderNormal;
 		m_nRenderFX = kRenderFxNone;
 

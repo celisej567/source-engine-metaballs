@@ -6,6 +6,7 @@
 #include "debugoverlay_shared.h"
 #include "c_point_blob_element.h"
 #include "c_point_blob_container.h"
+#include <omp.h>
 
 #include "materialsystem/imesh.h"
 
@@ -25,11 +26,10 @@ END_NETWORK_TABLE()
 ConVar r_drawblobs("r_drawblobs", "1", FCVAR_CLIENTDLL);
 ConVar cl_blobs_updatecontainers("cl_blobs_updatecontainers", "1", FCVAR_CLIENTDLL);
 //ConVar cl_blobs_resolution("cl_blobs_resolution", "10", FCVAR_CLIENTDLL);
-ConVar cl_blobthreshold("cl_blobthreshold", "1.2", FCVAR_CLIENTDLL);
-ConVar cl_blobvaluethreshold("cl_blobvaluethreshold", "0.3", FCVAR_CLIENTDLL);
-ConVar cl_blobs_unroll_factor("cl_blobs_unroll_factor", "4", FCVAR_CLIENTDLL);
+ConVar cl_blobthreshold("cl_blobthreshold", "1", FCVAR_CLIENTDLL);
+ConVar cl_blobvaluethreshold("cl_blobvaluethreshold", "0.03", FCVAR_CLIENTDLL);
 
-//why? why not! (it works better then Q_strcmp that redirects to V_strcmp that redirects to strcmp)
+//why? why not! (it works better then Q_strcmp that redirects to V_strcmp that redirects to default strcmp)
 int Quake_strcmp (const char* s1, const char* s2)
 {
 	while (1)
@@ -101,6 +101,7 @@ int C_PointBlobContainer::DrawModel(int flags)
 		meshBuilder.Begin(pMesh, MATERIAL_TRIANGLES, cubeGrid.numVertices);
 
 		//loop through cubes
+		#pragma omp parallel for 
 		for (int i = 0; i < cubeGrid.numCubes; i++)
 		{
 
@@ -217,14 +218,47 @@ void C_PointBlobContainer::UpdateResolution()
 	cubeGrid.CreateMemory();
 }
 
-void C_PointBlobContainer::UpdateBalls()
+void C_PointBlobContainer::UpdateMeshData(size_t startpoint, size_t nOfIterations)
+{
+
+	//Vector ballToPoint;
+	//float squaredRadius;
+	//Vector ballPosition;
+	//float normalScale = 0;
+	const float ValueThreshold = cl_blobvaluethreshold.GetFloat();
+
+	//+fps for me
+	#pragma omp parallel for 
+	for (size_t i = startpoint; i < startpoint + nOfIterations ; i++)
+	{
+		Vector ballPosition = metaballs[i]->GetAbsOrigin();
+		float squaredRadius = metaballs[i]->radiusSquared;
+
+		for (size_t j = 0; j < cubeGrid.numVertices; j++)
+		{
+			Vector ballToPoint = cubeGrid.vertices[j].position - ballPosition;
+			vec_t squareDistance = ballToPoint.LengthSqr();
+
+			if (squareDistance != 0)
+			{
+				float valueIncrement = squaredRadius / squareDistance;
+				cubeGrid.vertices[j].value += (valueIncrement > ValueThreshold) ? valueIncrement : 0;
+
+				float normalScale = squaredRadius / (squareDistance * squareDistance);
+				cubeGrid.vertices[j].normal += ballToPoint * normalScale;
+			}
+		}
+	}
+}
+
+void C_PointBlobContainer::UpdateContainer()
 {
 
 	//cubeGrid->Init(GridSize, GetAbsOrigin(), GridBounds);
 	if(parentedContainer == NULL)
 	{ 
 		metaballs.clear();
-		
+
 		// Iterate through all the entities in the clientside world
 		for (int i = 0; i < cl_entitylist->GetHighestEntityIndex()+1; i++)
 		{
@@ -245,41 +279,18 @@ void C_PointBlobContainer::UpdateBalls()
 		metaballs = parentedContainer->metaballs;
 	}
 	
+
 	if (cl_blobs_updatecontainers.GetBool())
 	{
+
 		//clear the field
-		for (int i = 0; i < cubeGrid.numVertices; i++)
+		for (size_t i = 0; i < cubeGrid.numVertices; i++)
 		{
 			cubeGrid.vertices[i].value = 0.0f;
 			cubeGrid.vertices[i].normal = {0,0,0};
 		}
-
-		Vector ballToPoint;
-		float squaredRadius;
-		Vector ballPosition;
-		float normalScale = 0;
-		const float ValueThreshold = cl_blobvaluethreshold.GetFloat();
-
-		for (unsigned int i = 0; i < metaballs.size(); i++)
-		{
-			ballPosition = metaballs[i]->GetAbsOrigin();
-			squaredRadius = metaballs[i]->radiusSquared;
-
-			for (int j = 0; j < cubeGrid.numVertices; j++)
-			{
-				ballToPoint = cubeGrid.vertices[j].position - ballPosition;
-				vec_t squareDistance = ballToPoint.LengthSqr();
-
-				if (squareDistance != 0)
-				{
-					float valueIncrement = squaredRadius / squareDistance;
-					cubeGrid.vertices[j].value += (squareDistance > ValueThreshold) ? valueIncrement : 0;
-
-					normalScale = squaredRadius / (squareDistance * squareDistance);
-					cubeGrid.vertices[j].normal += ballToPoint * normalScale;
-				}
-			}
-		}
+		
+		UpdateMeshData(0, metaballs.size());
 	}
 }
 
@@ -287,7 +298,7 @@ void C_PointBlobContainer::Simulate()
 {
 	BaseClass::Simulate();
 	//if(cl_blobs_updatecontainers.GetBool())
-		UpdateBalls();
+	UpdateContainer();
 	//if((cl_blobs_resolution.GetInt() != GridSize) || ((ConVarRef("cl_blobs_resolution_max").GetInt()) != ( cbrtf(cubeGrid->numVertices) - 3 )))
 	//	UpdateResolution();
 	if(developer.GetInt() > 0)
@@ -314,11 +325,20 @@ void C_PointBlobContainer::Simulate()
 			//white[i] = Vector(1 * colorBoost,1 * colorBoost,1 * colorBoost);
 		}
 		
-		if (BlobMaterialName == 0x00000000)
+		size_t amountOfZero = 0;
+
+		for (size_t i = 0; i < MAX_PATH; i++)
+		{
+			if(BlobMaterialName[i] == '\0')
+				amountOfZero++;
+		}
+		
+		
+		if (amountOfZero == MAX_PATH)
 		{
 			char* buff = new char[20];
 			V_snprintf(buff, 20, "{ %i %i %i }", color.GetR(), color.GetG(), color.GetB());
-			kval = new KeyValues("UnlitGeneric");
+			kval = new KeyValues("Vertexlitgeneric");
 			kval->SetString("$color", buff);
 			//kval->SetString("$vertexcolor", "1");
 			//kval->SetString("$vertexalpha", "1");

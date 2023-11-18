@@ -10,9 +10,9 @@
 #include "studio_stats.h"
 #include <vector>
 
-class C_PointBlobContainer : public C_BreakableProp
+class C_PointBlobContainer : public C_BaseAnimating
 {
-	DECLARE_CLASS(C_PointBlobContainer, C_BreakableProp);
+	DECLARE_CLASS(C_PointBlobContainer, C_BaseAnimating);
 public:
 	DECLARE_NETWORKCLASS();
 
@@ -43,7 +43,8 @@ public:
 		metaballs.clear();
 	}
 
-	void UpdateBalls();
+	void UpdateContainer();
+	void UpdateMeshData(size_t startpoint, size_t nOfIterations);
 	void UpdateResolution();
 
 	virtual int	DrawModel(int flags);

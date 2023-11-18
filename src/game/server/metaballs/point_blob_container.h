@@ -7,9 +7,9 @@
 
 //just empty shit to be able to spawn entity using ent_create and use entity for fgd for map
 
-class CPointBlobContainer : public	CBreakableProp
+class CPointBlobContainer : public	CBaseAnimating
 {
-	DECLARE_CLASS(CPointBlobContainer, CBreakableProp);
+	DECLARE_CLASS(CPointBlobContainer, CBaseAnimating);
 public:
 	DECLARE_DATADESC();
 	DECLARE_SERVERCLASS();
@@ -18,11 +18,18 @@ public:
 	{
 		GridSize = 10;
 		GridBounds = Vector(50,50,50);
-		color = {255,255,255};
+		Ambcolor = {80,80,80};
+		colorBoost = 1;
+		color = {100,100,100};
 	}
 	
 	virtual void Spawn()
 	{
+		//GridSize = 10;
+		//GridBounds = Vector(50, 50, 50);
+		//Ambcolor = {80,80,80};
+		//colorBoost = 1;
+		//color = {100,100,100};
 		SetTransmitState(FL_EDICT_PVSCHECK);
 
 		m_nRenderMode = kRenderNormal;
@@ -42,6 +49,11 @@ public:
 		m_flPlaybackRate = 0.0;
 		SetCycle(0);
 	}
+	
+	//void Precache()
+	//{
+	//	//i dont want o have that
+	//}
 
 	CNetworkVar(int, GridSize);
 	CNetworkVar(float, colorBoost);
