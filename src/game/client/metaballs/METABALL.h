@@ -7,7 +7,7 @@
 //	Copyright (c) 2006, Paul Baker
 //	Distributed under the New BSD Licence. (See accompanying file License.txt or copy at
 //	http://www.paulsprojects.net/NewBSDLicense.txt)
-//////////////////////////////////////////////////////////////////////////////////////////	
+//////////////////////////////////////////////////////////////////////////////////////////
 
 #ifndef C_METABALL_H
 #define C_METABALL_H
@@ -20,10 +20,10 @@ public:
 	Vector position;
 	float squaredRadius;
 
-	void Init(Vector newPosition, float newSquaredRadius)
+	void Init( Vector newPosition, float newSquaredRadius )
 	{
-	position=newPosition;
-	squaredRadius=newSquaredRadius;
+		position = newPosition;
+		squaredRadius = newSquaredRadius;
 	}
 };
 

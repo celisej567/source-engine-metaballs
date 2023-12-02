@@ -12,7 +12,7 @@
 
 class C_PointBlobContainer : public C_BaseAnimating
 {
-	DECLARE_CLASS(C_PointBlobContainer, C_BaseAnimating);
+	DECLARE_CLASS( C_PointBlobContainer, C_BaseAnimating );
 public:
 	DECLARE_NETWORKCLASS();
 
@@ -20,18 +20,18 @@ public:
 	{
 		GridSize = 10;
 		cubeGrid = CUBE_GRID();
-		GridBounds = {50,50,50};
+		GridBounds = {50, 50, 50};
 		colorBoost = 1;
 
-		Ambcolor.SetR(88);
-		Ambcolor.SetG(88);
-		Ambcolor.SetB(88);
-		Ambcolor.SetA(255);
+		Ambcolor.SetR( 88 );
+		Ambcolor.SetG( 88 );
+		Ambcolor.SetB( 88 );
+		Ambcolor.SetA( 255 );
 
-		color.SetR(100);
-		color.SetG(100);
-		color.SetB(100);
-		color.SetA(255);
+		color.SetR( 100 );
+		color.SetG( 100 );
+		color.SetB( 100 );
+		color.SetA( 255 );
 
 		cubeGrid.CreateMemory();
 	}
@@ -44,27 +44,30 @@ public:
 	}
 
 	void UpdateContainer();
-	void UpdateMeshData(size_t startpoint, size_t nOfIterations);
+	void UpdateMeshData( size_t startpoint, size_t nOfIterations );
 	void UpdateResolution();
 
-	virtual int	DrawModel(int flags);
-	virtual void GetRenderBounds(Vector& theMins, Vector& theMaxs);
+	virtual int	DrawModel( int flags );
+	virtual void GetRenderBounds( Vector& theMins, Vector& theMaxs );
 
-	virtual void Spawn(void);
-	virtual void ClientThink(){}
+	virtual void Spawn( void );
+	virtual void ClientThink() {}
 	//virtual void PostDataUpdate(DataUpdateType_t updateType);
-	virtual bool ShouldDraw() {return true;}
+	virtual bool ShouldDraw()
+	{
+		return true;
+	}
 
 	virtual void Simulate();
 
-	virtual void OnDataChanged(DataUpdateType_t type){}
+	virtual void OnDataChanged( DataUpdateType_t type ) {}
 
 	CUBE_GRID cubeGrid;
 	int GridSize;
 	float colorBoost;
 	Vector GridBounds;
-	CNetworkColor32(Ambcolor);
-	CNetworkColor32(color);
+	CNetworkColor32( Ambcolor );
+	CNetworkColor32( color );
 	std::vector<C_PointBlobElement*> metaballs;
 
 	IMesh* pMesh;
@@ -72,7 +75,7 @@ public:
 	C_PointBlobContainer* parentedContainer;
 
 	Vector white[6];
-	
+
 	char BlobMaterialName[MAX_PATH];
 
 	KeyValues* kval;
