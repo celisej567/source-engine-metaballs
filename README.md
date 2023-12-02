@@ -17,3 +17,10 @@ Basically thats it.
 ## How to use
 - Open Options of the hammer. Add this fgd to the `Game Data Files`
 - Use `point_blob_container` and `point_blob_element` in hammer.
+
+### Remember
+- Do not set Grid size bigger then 20. `CMeshBuilder` cant make more then 32k verticies.
+- Its ok to have issues with lighting with this implementation. `CMeshBuild` is peace of shit.
+
+## Why is it an entity?
+I wanted to make it work on SDK 2013 as well as on any other source game. SDK 2013 dont have particles source code. I whould like to make it to be a particle, but then  wont make it for SDK 2013 and even wont be able to make it opensource.
