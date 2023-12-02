@@ -18,7 +18,7 @@ You can make pull requests or issues to give me some feedback about problems and
 Basically thats it.
 
 ## How to use
-- Open Options of the hammer. Add this fgd to the `Game Data Files`
+- Open Options of the hammer. Add `blobs.fgd` to the `Game Data Files`
 - Use `point_blob_container` and `point_blob_element` in hammer.
 
 ### Remember
