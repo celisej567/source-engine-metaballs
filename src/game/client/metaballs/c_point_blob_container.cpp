@@ -6,6 +6,8 @@
 #include "debugoverlay_shared.h"
 #include "c_point_blob_element.h"
 #include "c_point_blob_container.h"
+#include "cdll_util.h"
+
 #include <omp.h>
 
 #include "materialsystem/imesh.h"
@@ -128,7 +130,7 @@ int C_PointBlobContainer::DrawModel(int flags)
 			int usedEdges = edgeTable[cubeIndex];
 
 
-			//if the cube is entirely within/outside surface, no faces			
+			//if the cube is entirely within/outside surface, no faces
 			if (usedEdges == 0 || usedEdges == 255)
 				continue;
 
@@ -157,22 +159,22 @@ int C_PointBlobContainer::DrawModel(int flags)
 			{
 				//Vector pos = Vector(edgeVertices[triTable[cubeIndex][k + 0]].position.x, edgeVertices[triTable[cubeIndex][k + 0]].position.y, edgeVertices[triTable[cubeIndex][k + 0]].position.z);
 				//Vector vertnormal = Vector(edgeVertices[triTable[cubeIndex][k + 0]].normal.x, edgeVertices[triTable[cubeIndex][k + 0]].normal.y, edgeVertices[triTable[cubeIndex][k + 0]].normal.z);
-				
+
 				meshBuilder.Normal3fv(edgeVertices[triTable[cubeIndex][k + 0]].normal.Base());
 				meshBuilder.Position3fv(edgeVertices[triTable[cubeIndex][k + 0]].position.Base());
 				meshBuilder.TexCoord2f(0, 1, 1);
 				meshBuilder.Color3f(1,0,0);
 				meshBuilder.AdvanceVertex();
-				
+
 				//pos = Vector(edgeVertices[triTable[cubeIndex][k + 1]].position.x, edgeVertices[triTable[cubeIndex][k + 1]].position.y, edgeVertices[triTable[cubeIndex][k + 1]].position.z);
 				//vertnormal = Vector(edgeVertices[triTable[cubeIndex][k + 1]].normal.x, edgeVertices[triTable[cubeIndex][k + 1]].normal.y, edgeVertices[triTable[cubeIndex][k + 1]].normal.z);
-		
+
 				meshBuilder.Normal3fv(edgeVertices[triTable[cubeIndex][k + 1]].normal.Base());
 				meshBuilder.Position3fv(edgeVertices[triTable[cubeIndex][k + 1]].position.Base());
 				meshBuilder.TexCoord2f(0, 1, 0);
 				meshBuilder.Color3f(0, 1, 0);
 				meshBuilder.AdvanceVertex();
-		
+
 				//pos = Vector(edgeVertices[triTable[cubeIndex][k + 2]].position.x, edgeVertices[triTable[cubeIndex][k + 2]].position.y, edgeVertices[triTable[cubeIndex][k + 2]].position.z);
 				//vertnormal = Vector(edgeVertices[triTable[cubeIndex][k + 2]].normal.x, edgeVertices[triTable[cubeIndex][k + 2]].normal.y, edgeVertices[triTable[cubeIndex][k + 2]].normal.z);
 
@@ -181,16 +183,16 @@ int C_PointBlobContainer::DrawModel(int flags)
 				meshBuilder.TexCoord2f(0, 0, 1);
 				meshBuilder.Color3f(0, 0, 1);
 				meshBuilder.AdvanceVertex();
-				
+
 			}
 		}
 		//pRenderContext->SetFlashlightMode(false);
 		meshBuilder.End();
 		//modelrender->SuppressEngineLighting(false);
-		
+
 		pMesh->Draw();
 		pRenderContext->Flush();
-		
+
 		//delete pMesh;
 		//pRenderContext->PopMatrix();
 		//pRenderContext->Flush();
@@ -278,7 +280,6 @@ void C_PointBlobContainer::UpdateContainer()
 	{
 		metaballs = parentedContainer->metaballs;
 	}
-	
 
 	if (cl_blobs_updatecontainers.GetBool())
 	{
@@ -289,7 +290,6 @@ void C_PointBlobContainer::UpdateContainer()
 			cubeGrid.vertices[i].value = 0.0f;
 			cubeGrid.vertices[i].normal = {0,0,0};
 		}
-		
 		UpdateMeshData(0, metaballs.size());
 	}
 }
@@ -308,7 +308,7 @@ void C_PointBlobContainer::Simulate()
 		GetRenderBounds(min,max);
 			NDebugOverlay::Box(GetAbsOrigin(), min, max, 255, 0, 0, 0, 0.0015f);
 	}
-	
+
 	// Why like this? 
 	// When you spawn entity using ent_create, engine spawns entity at 0 0 0, calls Spawn(), transfer all the netvar data and only then he changes position to view point.
 	// Simulate() called only AFTER changing position, so this shit will work more reliably here. 
@@ -318,33 +318,21 @@ void C_PointBlobContainer::Simulate()
 		cubeGrid.Init(GridSize, GetAbsOrigin(), GridBounds);
 
 		for(size_t i=0; i<6; i++)
-		{ 
+		{
 			//white[i] = Vector(RemapVal(color.GetR(), 0, 255, 0, 1) * colorBoost, RemapVal(color.GetG(), 0, 255, 0, 1) * colorBoost, RemapVal(color.GetB(), 0, 255, 0, 1) * colorBoost);
 			white[i] = Vector(((float)Ambcolor.GetR()/255) * colorBoost, ((float)Ambcolor.GetG()/255) * colorBoost, ((float)Ambcolor.GetB()/255) * colorBoost);
 			//white[i] = Vector((Ambcolor.GetR()/0xFF) * colorBoost, (Ambcolor.GetG()/0xFF) * colorBoost, (Ambcolor.GetB()/0xFF) * colorBoost);
 			//white[i] = Vector(1 * colorBoost,1 * colorBoost,1 * colorBoost);
 		}
-		
-		size_t amountOfZero = 0;
 
-		for (size_t i = 0; i < MAX_PATH; i++)
+		if (!BlobMaterialName[0])
 		{
-			if(BlobMaterialName[i] == '\0')
-				amountOfZero++;
-		}
-		
-		
-		if (amountOfZero == MAX_PATH)
-		{
-			char* buff = new char[20];
-			V_snprintf(buff, 20, "{ %i %i %i }", color.GetR(), color.GetG(), color.GetB());
 			kval = new KeyValues("Vertexlitgeneric");
-			kval->SetString("$color", buff);
+			kval->SetString("$color", VarArgs( "{ %i %i %i }", color.GetR(), color.GetG(), color.GetB() ) );
 			//kval->SetString("$vertexcolor", "1");
 			//kval->SetString("$vertexalpha", "1");
 			//kval->SetString("$envmap", "editor/cubemap");
-			CustomMat = materials->CreateMaterial("blobik.vmt", kval);	
-			
+			CustomMat = materials->CreateMaterial("blobik.vmt", kval);
 		}
 		else{
 			PrecacheMaterial(BlobMaterialName);
