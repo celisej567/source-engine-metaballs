@@ -5,6 +5,8 @@ Based on [Paul Baker's project from 2002](https://www.paulsprojects.net/opengl/m
 
 *THIS IS FOR SOURCE CODE!*
 
+You can make pull requests or issues to give me some feedback about problems and their fixes.
+
 ## How to install
 - Copy `src/game` folder to the `src` folder of your mod/game.
 - (OPTIONAL) Copy `game/mod_hl2/materials` in your mod.
