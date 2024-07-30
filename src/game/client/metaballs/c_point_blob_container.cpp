@@ -33,21 +33,6 @@ ConVar cl_blobs_updatecontainers("cl_blobs_updatecontainers", "1", FCVAR_CLIENTD
 ConVar cl_blobthreshold("cl_blobthreshold", "1", FCVAR_CLIENTDLL);
 ConVar cl_blobvaluethreshold("cl_blobvaluethreshold", "0.03", FCVAR_CLIENTDLL);
 
-//why? why not! (it works better then Q_strcmp that redirects to V_strcmp that redirects to default strcmp)
-//~ int Quake_strcmp (const char* s1, const char* s2)
-//~ {
-	//~ while (1)
-	//~ {
-		//~ if (*s1 != *s2)
-			//~ return -1;        // strings not equal
-		//~ if (!*s1)
-			//~ return 0;        // strings are equal
-		//~ s1++;
-		//~ s2++;
-	//~ }
-
-	//~ return -1;
-//~ }
 #define Quake_strcmp strcmp
 
 void C_PointBlobContainer::Spawn()
@@ -80,144 +65,143 @@ void C_PointBlobContainer::Spawn()
 
 int C_PointBlobContainer::DrawModel(int flags)
 {
-	if(r_drawblobs.GetBool())
+	if (r_drawblobs.GetBool())
 	{
-	if (metaballs.size() > 0)
-	{
-
-		///Source dont like when you do CMeshBuilder stuff in DrawModel. So sometimes lighting looks like shit. Im making it unlit because i cant feagure out how to fix this
-
-		CMatRenderContextPtr pRenderContext(materials);
-		
-		pRenderContext->Bind(CustomMat, NULL);
-		pRenderContext->SetLightingOrigin(GetAbsOrigin());
-
-		g_pStudioRender->SetAmbientLightColors(white);
-
-		//// Disable all the lights..
-		//pRenderContext->DisableAllLocalLights();
-		
-		pMesh = pRenderContext->GetDynamicMesh();
-		
-		CMeshBuilder meshBuilder;
-
-		const float threshold = cl_blobthreshold.GetFloat();
-
-		meshBuilder.Begin(pMesh, MATERIAL_TRIANGLES, cubeGrid.numVertices);
-
-		//loop through cubes
-		#pragma omp parallel for 
-		for (int i = 0; i < cubeGrid.numCubes; i++)
+		if (metaballs.size())
 		{
-			CUBE_GRID_CUBE& cube = cubeGrid.cubes[i];
-			//calculate which vertices are inside the surface
-			unsigned char cubeIndex = 0;
-			if (cube.vertices[0]->value < threshold)
-				cubeIndex |= 1;
-			if (cube.vertices[1]->value < threshold)
-				cubeIndex |= 2;
-			if (cube.vertices[2]->value < threshold)
-				cubeIndex |= 4;
-			if (cube.vertices[3]->value < threshold)
-				cubeIndex |= 8;
-			if (cube.vertices[4]->value < threshold)
-				cubeIndex |= 16;
-			if (cube.vertices[5]->value < threshold)
-				cubeIndex |= 32;
-			if (cube.vertices[6]->value < threshold)
-				cubeIndex |= 64;
-			if (cube.vertices[7]->value < threshold)
-				cubeIndex |= 128;
-
-			//look this value up in the edge table to see which edges to interpolate along
-			int usedEdges = edgeTable[cubeIndex];
-
-			//if the cube is entirely within/outside surface, no faces
-			if (usedEdges == 0 || usedEdges == 255)
-				continue;
-
-			//update these edges
-			for (int currentEdge = 0; currentEdge < 12; currentEdge++)
+			///Source dont like when you do CMeshBuilder stuff in DrawModel. So sometimes lighting looks like shit. Im making it unlit because i cant feagure out how to fix this
+			
+			CMatRenderContextPtr pRenderContext(materials);
+			
+			pRenderContext->Bind(CustomMat, NULL);
+			pRenderContext->SetLightingOrigin(GetAbsOrigin());
+			
+			g_pStudioRender->SetAmbientLightColors(white);
+			
+			//// Disable all the lights..
+			//pRenderContext->DisableAllLocalLights();
+			
+			pMesh = pRenderContext->GetDynamicMesh();
+			
+			CMeshBuilder meshBuilder;
+			
+			const float threshold = cl_blobthreshold.GetFloat();
+			
+			meshBuilder.Begin(pMesh, MATERIAL_TRIANGLES, cubeGrid.numVertices);
+			
+			//loop through cubes
+			#pragma omp parallel for 
+			for (int i = 0; i < cubeGrid.numCubes; i++)
 			{
-				if (usedEdges & 1 << currentEdge)
+				CUBE_GRID_CUBE& cube = cubeGrid.cubes[i];
+				//calculate which vertices are inside the surface
+				unsigned char cubeIndex = 0;
+				if (cube.vertices[0]->value < threshold)
+					cubeIndex |= 1;
+				if (cube.vertices[1]->value < threshold)
+					cubeIndex |= 2;
+				if (cube.vertices[2]->value < threshold)
+					cubeIndex |= 4;
+				if (cube.vertices[3]->value < threshold)
+					cubeIndex |= 8;
+				if (cube.vertices[4]->value < threshold)
+					cubeIndex |= 16;
+				if (cube.vertices[5]->value < threshold)
+					cubeIndex |= 32;
+				if (cube.vertices[6]->value < threshold)
+					cubeIndex |= 64;
+				if (cube.vertices[7]->value < threshold)
+					cubeIndex |= 128;
+			
+				//look this value up in the edge table to see which edges to interpolate along
+				int usedEdges = edgeTable[cubeIndex];
+			
+				//if the cube is entirely within/outside surface, no faces
+				if (usedEdges == 0 || usedEdges == 255)
+					continue;
+			
+				//update these edges
+				for (int currentEdge = 0; currentEdge < 12; currentEdge++)
 				{
-					CUBE_GRID_VERTEX* v1 = cube.vertices[verticesAtEndsOfEdges[currentEdge * 2]];
-					CUBE_GRID_VERTEX* v2 = cube.vertices[verticesAtEndsOfEdges[currentEdge * 2 + 1]];
-
-					//~ const float delta = (threshold - v1->value) / (v2->value - v1->value);
-					fltx4 delta = ReplicateX4((threshold - v1->value) / (v2->value - v1->value));
-					//edgeVertices[currentEdge].position=v1->position + delta*(v2->position - v1->position);
+					if (usedEdges & 1 << currentEdge)
+					{
+						CUBE_GRID_VERTEX* v1 = cube.vertices[verticesAtEndsOfEdges[currentEdge * 2]];
+						CUBE_GRID_VERTEX* v2 = cube.vertices[verticesAtEndsOfEdges[currentEdge * 2 + 1]];
+			
+						//~ const float delta = (threshold - v1->value) / (v2->value - v1->value);
+						fltx4 delta = ReplicateX4((threshold - v1->value) / (v2->value - v1->value));
+						//edgeVertices[currentEdge].position=v1->position + delta*(v2->position - v1->position);
+						
+						fltx4 f1 = LoadUnaligned3SIMD(v1->position.Base()), f2 = LoadUnaligned3SIMD(v2->position.Base());
+						
+						//~ edgeVertices[currentEdge].position.x = v1->position.x + delta * (v2->position.x - v1->position.x);
+						//~ edgeVertices[currentEdge].position.y = v1->position.y + delta * (v2->position.y - v1->position.y);
+						//~ edgeVertices[currentEdge].position.z = v1->position.z + delta * (v2->position.z - v1->position.z);
+						
+						StoreUnaligned3SIMD(edgeVertices[currentEdge].position.Base(), 
+											AddSIMD(f1, MulSIMD(delta, SubSIMD(f2, f1) )));
+						
+						//edgeVertices[currentEdge].normal=v1->normal + delta*(v2->normal - v1->normal);
+						
+						f1 = LoadUnaligned3SIMD(v1->normal.Base());
+						f2 = LoadUnaligned3SIMD(v2->normal.Base());
+						
+						//~ edgeVertices[currentEdge].normal.x = v1->normal.x + delta * (v2->normal.x - v1->normal.x);
+						//~ edgeVertices[currentEdge].normal.y = v1->normal.y + delta * (v2->normal.y - v1->normal.y);
+						//~ edgeVertices[currentEdge].normal.z = v1->normal.z + delta * (v2->normal.z - v1->normal.z);
+						
+						StoreUnaligned3SIMD(edgeVertices[currentEdge].normal.Base(), 
+											AddSIMD(f1, MulSIMD(delta, SubSIMD(f2, f1) )));
+					}
+				}
+			
+				//send the vertices
+				for (int k = 0; triTable[cubeIndex][k] != -1; k += 3)
+				{
+					//Vector pos = Vector(edgeVertices[triTable[cubeIndex][k + 0]].position.x, edgeVertices[triTable[cubeIndex][k + 0]].position.y, edgeVertices[triTable[cubeIndex][k + 0]].position.z);
+					//Vector vertnormal = Vector(edgeVertices[triTable[cubeIndex][k + 0]].normal.x, edgeVertices[triTable[cubeIndex][k + 0]].normal.y, edgeVertices[triTable[cubeIndex][k + 0]].normal.z);
 					
-					fltx4 f1 = LoadUnaligned3SIMD(v1->position.Base()), f2 = LoadUnaligned3SIMD(v2->position.Base());
-					
-					//~ edgeVertices[currentEdge].position.x = v1->position.x + delta * (v2->position.x - v1->position.x);
-					//~ edgeVertices[currentEdge].position.y = v1->position.y + delta * (v2->position.y - v1->position.y);
-					//~ edgeVertices[currentEdge].position.z = v1->position.z + delta * (v2->position.z - v1->position.z);
-					
-					StoreUnaligned3SIMD(edgeVertices[currentEdge].position.Base(), 
-										AddSIMD(f1, MulSIMD(delta, SubSIMD(f2, f1) )));
-					
-					//edgeVertices[currentEdge].normal=v1->normal + delta*(v2->normal - v1->normal);
-					
-					f1 = LoadUnaligned3SIMD(v1->normal.Base());
-					f2 = LoadUnaligned3SIMD(v2->normal.Base());
-					
-					//~ edgeVertices[currentEdge].normal.x = v1->normal.x + delta * (v2->normal.x - v1->normal.x);
-					//~ edgeVertices[currentEdge].normal.y = v1->normal.y + delta * (v2->normal.y - v1->normal.y);
-					//~ edgeVertices[currentEdge].normal.z = v1->normal.z + delta * (v2->normal.z - v1->normal.z);
-					
-					StoreUnaligned3SIMD(edgeVertices[currentEdge].normal.Base(), 
-										AddSIMD(f1, MulSIMD(delta, SubSIMD(f2, f1) )));
+					SURFACE_VERTEX  &e0 = edgeVertices[triTable[cubeIndex][k + 0]],
+									&e1 = edgeVertices[triTable[cubeIndex][k + 1]],
+									&e2 = edgeVertices[triTable[cubeIndex][k + 2]];
+			
+					meshBuilder.Normal3fv(e0.normal.Base());
+					meshBuilder.Position3fv(e0.position.Base());
+					meshBuilder.TexCoord2f(0, 1, 1);
+					meshBuilder.Color3f(1,0,0);
+					meshBuilder.AdvanceVertex();
+			
+					//pos = Vector(edgeVertices[triTable[cubeIndex][k + 1]].position.x, edgeVertices[triTable[cubeIndex][k + 1]].position.y, edgeVertices[triTable[cubeIndex][k + 1]].position.z);
+					//vertnormal = Vector(edgeVertices[triTable[cubeIndex][k + 1]].normal.x, edgeVertices[triTable[cubeIndex][k + 1]].normal.y, edgeVertices[triTable[cubeIndex][k + 1]].normal.z);
+			
+					meshBuilder.Normal3fv(e1.normal.Base());
+					meshBuilder.Position3fv(e1.position.Base());
+					meshBuilder.TexCoord2f(0, 1, 0);
+					meshBuilder.Color3f(0, 1, 0);
+					meshBuilder.AdvanceVertex();
+			
+					//pos = Vector(edgeVertices[triTable[cubeIndex][k + 2]].position.x, edgeVertices[triTable[cubeIndex][k + 2]].position.y, edgeVertices[triTable[cubeIndex][k + 2]].position.z);
+					//vertnormal = Vector(edgeVertices[triTable[cubeIndex][k + 2]].normal.x, edgeVertices[triTable[cubeIndex][k + 2]].normal.y, edgeVertices[triTable[cubeIndex][k + 2]].normal.z);
+			
+					meshBuilder.Normal3fv(e2.normal.Base());
+					meshBuilder.Position3fv(e2.position.Base());
+					meshBuilder.TexCoord2f(0, 0, 1);
+					meshBuilder.Color3f(0, 0, 1);
+					meshBuilder.AdvanceVertex();
+			
 				}
 			}
+			//pRenderContext->SetFlashlightMode(false);
+			meshBuilder.End();
+			//modelrender->SuppressEngineLighting(false);
 
-			//send the vertices
-			for (int k = 0; triTable[cubeIndex][k] != -1; k += 3)
-			{
-				//Vector pos = Vector(edgeVertices[triTable[cubeIndex][k + 0]].position.x, edgeVertices[triTable[cubeIndex][k + 0]].position.y, edgeVertices[triTable[cubeIndex][k + 0]].position.z);
-				//Vector vertnormal = Vector(edgeVertices[triTable[cubeIndex][k + 0]].normal.x, edgeVertices[triTable[cubeIndex][k + 0]].normal.y, edgeVertices[triTable[cubeIndex][k + 0]].normal.z);
-				
-				SURFACE_VERTEX  &e0 = edgeVertices[triTable[cubeIndex][k + 0]],
-								&e1 = edgeVertices[triTable[cubeIndex][k + 1]],
-								&e2 = edgeVertices[triTable[cubeIndex][k + 2]];
+			pMesh->Draw();
+			pRenderContext->Flush();
 
-				meshBuilder.Normal3fv(e0.normal.Base());
-				meshBuilder.Position3fv(e0.position.Base());
-				meshBuilder.TexCoord2f(0, 1, 1);
-				meshBuilder.Color3f(1,0,0);
-				meshBuilder.AdvanceVertex();
-
-				//pos = Vector(edgeVertices[triTable[cubeIndex][k + 1]].position.x, edgeVertices[triTable[cubeIndex][k + 1]].position.y, edgeVertices[triTable[cubeIndex][k + 1]].position.z);
-				//vertnormal = Vector(edgeVertices[triTable[cubeIndex][k + 1]].normal.x, edgeVertices[triTable[cubeIndex][k + 1]].normal.y, edgeVertices[triTable[cubeIndex][k + 1]].normal.z);
-
-				meshBuilder.Normal3fv(e1.normal.Base());
-				meshBuilder.Position3fv(e1.position.Base());
-				meshBuilder.TexCoord2f(0, 1, 0);
-				meshBuilder.Color3f(0, 1, 0);
-				meshBuilder.AdvanceVertex();
-
-				//pos = Vector(edgeVertices[triTable[cubeIndex][k + 2]].position.x, edgeVertices[triTable[cubeIndex][k + 2]].position.y, edgeVertices[triTable[cubeIndex][k + 2]].position.z);
-				//vertnormal = Vector(edgeVertices[triTable[cubeIndex][k + 2]].normal.x, edgeVertices[triTable[cubeIndex][k + 2]].normal.y, edgeVertices[triTable[cubeIndex][k + 2]].normal.z);
-
-				meshBuilder.Normal3fv(e2.normal.Base());
-				meshBuilder.Position3fv(e2.position.Base());
-				meshBuilder.TexCoord2f(0, 0, 1);
-				meshBuilder.Color3f(0, 0, 1);
-				meshBuilder.AdvanceVertex();
-
-			}
+			//delete pMesh;
+			//pRenderContext->PopMatrix();
+			//pRenderContext->Flush();
 		}
-		//pRenderContext->SetFlashlightMode(false);
-		meshBuilder.End();
-		//modelrender->SuppressEngineLighting(false);
-
-		pMesh->Draw();
-		pRenderContext->Flush();
-
-		//delete pMesh;
-		//pRenderContext->PopMatrix();
-		//pRenderContext->Flush();
-	}
 	}
 
 	return 1;
